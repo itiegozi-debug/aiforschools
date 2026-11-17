@@ -5,28 +5,63 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: "20kb" }));
 
-// Open the website
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Check that the server is working
 app.get("/api/health", (req, res) => {
-  res.json({
-    status: "online",
-    message: "AI for Schools server is working!"
-  });
+  res.json({ status: "online" });
 });
 
-// Chatbot endpoint (AI connection comes later)
-app.post("/api/chat", (req, res) => {
-  res.json({
-    reply: "The chatbot server is working! An approved AI provider still needs to be connected."
-  });
+app.post("/api/chat", async (req, res) => {
+  try {
+    const message = req.body.message;
+
+    if (!message || typeof message !== "string") {
+      return res.status(400).json({
+        error: "Please enter a message."
+      });
+    }
+
+    if (message.length > 4000) {
+      return res.status(400).json({
+        error: "Your message is too long."
+      });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({
+        error: "Gemini API key is missing."
+      });
+    }
+
+    const { GoogleGenAI } = await import("@google/genai");
+
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY
+    });
+
+    const response = await ai.interactions.create({
+      model: "gemini-3.8-flash",
+      input: message
+    });
+
+    res.json({
+      reply: response.output_text ||
+        "Sorry, I couldn't generate a response."
+    });
+
+  } catch (error) {
+    console.error("Gemini error:", error.message);
+
+    res.status(500).json({
+      error: "The AI couldn't respond. Please try again."
+    });
+  }
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log("Server is running on port " + PORT);
+  console.log("Server running on port " + PORT);
 });
