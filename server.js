@@ -16,6 +16,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.post("/api/chat", async (req, res) => {
+console.log("CHAT REQUEST RECEIVED:", req.body);
   try {
     const message = req.body.message;
 
@@ -54,7 +55,7 @@ app.post("/api/chat", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Gemini error:", error.message);
+    console.error("GEMINI ERROR DETAILS:", error);
 
     res.status(500).json({
       error: "The AI couldn't respond. Please try again."
