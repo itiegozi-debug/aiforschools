@@ -162,7 +162,7 @@ async function sendChat(prefill = "") {
   } catch (error) {
     loading.remove();
     addMessage(
-      "Sorry, I couldn't connect to the AI server. Please try again.",
+      "AI ERROR: " + error.message,
       "bot"
     );
     console.error(error);
