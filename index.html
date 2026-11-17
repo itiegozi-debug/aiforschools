@@ -128,19 +128,57 @@ document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',e=>
 
 const messages=document.getElementById('messages'), chatForm=document.getElementById('chatForm'), chatInput=document.getElementById('chatInput');
 function addMessage(text,kind){const d=document.createElement('div');d.className='msg '+kind;d.textContent=text;messages.appendChild(d);messages.scrollTop=messages.scrollHeight;}
-function answer(q){
- const t=q.toLowerCase();
- if(t.includes('what is ai')||t.includes('define ai')) return "Artificial intelligence (AI) is technology designed to do tasks that usually need abilities such as recognizing patterns, understanding language, or making predictions. Generative AI can create new text, images, audio, or code. It is a tool—not a human mind.";
- if(t.includes('mistake')||t.includes('wrong')||t.includes('hallucin')) return "Yes! AI can make mistakes, invent details, use outdated information, or sound confident when it is wrong. Check important claims with reliable sources, compare more than one source, and ask a teacher when you're unsure.";
- if(t.includes('cheat')||t.includes('honest')||t.includes('homework')||t.includes('assignment')) return "Start by checking your teacher's rules for that assignment. Good uses might include asking for another explanation, making practice questions, or brainstorming when permitted. Do your own thinking, don't copy an AI answer as your work, and disclose AI help when required.";
- if(t.includes('privacy')||t.includes('personal')||t.includes('safe')) return "Protect your privacy: don't enter passwords, addresses, private messages, student records, or sensitive family information. Use school-approved tools, check their privacy settings, and ask a trusted adult if you're unsure.";
- if(t.includes('code')||t.includes('coding')||t.includes('game')) return "AI can help explain code, suggest ideas, and find bugs. Ask it to explain each line, then test and change the code yourself. Never paste private information or secrets such as passwords or API keys into a prompt.";
- if(t.includes('teacher')||t.includes('school')||t.includes('class')) return "Schools can set balanced rules: teachers decide when AI is allowed, students explain how they used it, everyone checks facts, and private information stays out of prompts. A supervised pilot can help a school learn what works.";
- return "Good question! Here's a useful way to think about it: AI can be helpful, but it is not automatically correct. Ask what evidence supports its answer, check trustworthy sources, protect private information, and follow your teacher's directions. Try asking me about AI basics, mistakes, privacy, schoolwork, or coding.";
+
+async function sendChat(prefill = "") {
+  const question = (prefill || chatInput.value || "").trim();
+  if (!question) return;
+
+  addMessage(question, "user");
+  chatInput.value = "";
+
+  const loading = document.createElement("div");
+  loading.className = "msg bot";
+  loading.textContent = "Thinking...";
+  messages.appendChild(loading);
+
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ message: question })
+    });
+
+    const data = await response.json();
+    loading.remove();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Chat request failed");
+    }
+
+    addMessage(data.reply, "bot");
+
+  } catch (error) {
+    loading.remove();
+    addMessage(
+      "Sorry, I couldn't connect to the AI server. Please try again.",
+      "bot"
+    );
+    console.error(error);
+  }
 }
-function sendChat(q){if(!q.trim())return;addMessage(q,'user');chatInput.value='';setTimeout(()=>addMessage(answer(q),'bot'),250);}
-chatForm.addEventListener('submit',e=>{e.preventDefault();sendChat(chatInput.value)});
-document.querySelectorAll('[data-q]').forEach(b=>b.addEventListener('click',()=>sendChat(b.dataset.q)));
+
+chatForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  sendChat();
+});
+
+document.querySelectorAll("[data-q]").forEach(button => {
+  button.addEventListener("click", () => {
+    sendChat(button.dataset.q);
+  });
+});
 
 let score=0;
 const scoreEl=document.getElementById('score'), gameMsg=document.getElementById('gameMessage');
