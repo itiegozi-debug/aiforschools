@@ -16,7 +16,8 @@ app.get("/api/health", (req, res) => {
 });
 
 app.post("/api/chat", async (req, res) => {
-console.log("CHAT REQUEST RECEIVED:", req.body);
+  console.log("Chat request received");
+
   try {
     const message = req.body.message;
 
@@ -26,16 +27,8 @@ console.log("CHAT REQUEST RECEIVED:", req.body);
       });
     }
 
-    if (message.length > 4000) {
-      return res.status(400).json({
-        error: "Your message is too long."
-      });
-    }
-
     if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({
-        error: "Gemini API key is missing."
-      });
+      throw new Error("GEMINI_API_KEY is missing from Render.");
     }
 
     const { GoogleGenAI } = await import("@google/genai");
@@ -44,21 +37,22 @@ console.log("CHAT REQUEST RECEIVED:", req.body);
       apiKey: process.env.GEMINI_API_KEY
     });
 
-    const response = await ai.interactions.create({
+    const result = await ai.models.generateContent({
       model: "gemini-3.8-flash",
-      input: message
+      contents: message
     });
 
+    console.log("Gemini response received");
+
     res.json({
-      reply: response.output_text ||
-        "Sorry, I couldn't generate a response."
+      reply: result.text || "Gemini returned an empty response."
     });
 
   } catch (error) {
-    console.error("GEMINI ERROR DETAILS:", error);
+    console.error("GEMINI ERROR:", error);
 
     res.status(500).json({
-      error: "The AI couldn't respond. Please try again."
+      error: error.message || "Unknown Gemini error"
     });
   }
 });
